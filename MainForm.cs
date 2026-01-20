@@ -1842,36 +1842,66 @@ public class MainForm : Form
     {
         // Create a temporary file for the normalized audio
         var outputPath = Path.Combine(Path.GetTempPath(), $"normalized_{Guid.NewGuid()}.wav");
-        
+
+        // Target RMS level (around -14 dB, common for voice)
+        const float targetRms = 0.2f;
+
         using (var reader = new AudioFileReader(inputPath))
         {
-            // Find the peak amplitude
-            float maxSample = 0f;
             float[] buffer = new float[reader.WaveFormat.SampleRate * reader.WaveFormat.Channels];
             int samplesRead;
-            
+
+            // First pass: calculate RMS (Root Mean Square) for average loudness
+            double sumSquares = 0;
+            long totalSamples = 0;
+            float maxSample = 0f;
+
             while ((samplesRead = reader.Read(buffer, 0, buffer.Length)) > 0)
             {
                 for (int i = 0; i < samplesRead; i++)
                 {
+                    sumSquares += buffer[i] * buffer[i];
                     var abs = Math.Abs(buffer[i]);
                     if (abs > maxSample) maxSample = abs;
                 }
+                totalSamples += samplesRead;
             }
-            
-            if (maxSample == 0 || maxSample >= 1.0f)
+
+            if (totalSamples == 0 || sumSquares == 0)
             {
-                // No normalization needed or audio is silent
+                // Silent audio, no normalization needed
                 return inputPath;
             }
-            
-            // Calculate normalization factor (target peak at 0.95 to avoid clipping)
-            float normalizationFactor = 0.95f / maxSample;
-            
+
+            float currentRms = (float)Math.Sqrt(sumSquares / totalSamples);
+
+            if (currentRms == 0)
+            {
+                // Silent audio
+                return inputPath;
+            }
+
+            // Calculate normalization factor based on RMS
+            float normalizationFactor = targetRms / currentRms;
+
+            // Check if normalization would cause clipping, and limit if necessary
+            float predictedPeak = maxSample * normalizationFactor;
+            if (predictedPeak > 0.95f)
+            {
+                // Limit factor to prevent clipping
+                normalizationFactor = 0.95f / maxSample;
+            }
+
+            // Skip if already close to target (within 10%)
+            if (normalizationFactor > 0.9f && normalizationFactor < 1.1f)
+            {
+                return inputPath;
+            }
+
             // Reset reader position
             reader.Position = 0;
-            
-            // Write normalized audio
+
+            // Second pass: write normalized audio
             using (var writer = new WaveFileWriter(outputPath, reader.WaveFormat))
             {
                 while ((samplesRead = reader.Read(buffer, 0, buffer.Length)) > 0)
@@ -1884,7 +1914,7 @@ public class MainForm : Form
                 }
             }
         }
-        
+
         return outputPath;
     }
 
