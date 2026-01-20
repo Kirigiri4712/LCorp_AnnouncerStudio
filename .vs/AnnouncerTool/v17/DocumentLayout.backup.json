@@ -3,12 +3,12 @@
   "WorkspaceRootPath": "C:\\workspace\\AnnouncerTool\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{3A55C2EB-9FD6-F32E-9397-D3CE4B9D9517}|AnnouncerTool.csproj|c:\\workspace\\announcertool\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{3A55C2EB-9FD6-F32E-9397-D3CE4B9D9517}|AnnouncerTool.csproj|solutionrelative:mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{3A55C2EB-9FD6-F32E-9397-D3CE4B9D9517}|AnnouncerTool.csproj|c:\\workspace\\announcertool\\announcertool.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
       "RelativeMoniker": "D:0:0:{3A55C2EB-9FD6-F32E-9397-D3CE4B9D9517}|AnnouncerTool.csproj|solutionrelative:announcertool.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3A55C2EB-9FD6-F32E-9397-D3CE4B9D9517}|AnnouncerTool.csproj|c:\\workspace\\announcertool\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3A55C2EB-9FD6-F32E-9397-D3CE4B9D9517}|AnnouncerTool.csproj|solutionrelative:mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{3A55C2EB-9FD6-F32E-9397-D3CE4B9D9517}|AnnouncerTool.csproj|c:\\workspace\\announcertool\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -22,7 +22,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -30,7 +30,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "AnnouncerTool",
               "DocumentMoniker": "C:\\workspace\\AnnouncerTool\\AnnouncerTool.csproj",
               "RelativeDocumentMoniker": "AnnouncerTool.csproj",
@@ -55,13 +55,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "MainForm.cs",
               "DocumentMoniker": "C:\\workspace\\AnnouncerTool\\MainForm.cs",
               "RelativeDocumentMoniker": "MainForm.cs",
               "ToolTip": "C:\\workspace\\AnnouncerTool\\MainForm.cs",
               "RelativeToolTip": "MainForm.cs",
-              "ViewState": "AgIAAOsAAAAAAAAAAAAqwPkAAABZAAAAAAAAAA==",
+              "ViewState": "AgIAAOwAAAAAAAAAAAAqwPoAAABZAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-12-25T13:56:58.661Z",
               "EditorCaption": ""

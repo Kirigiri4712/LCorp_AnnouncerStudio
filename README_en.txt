@@ -61,15 +61,35 @@ A GUI tool for creating Announcer MODs for Lobotomy Corporation.
 | QliphothMeltdown   | When Qliphoth Meltdown level increases     |
 | Rabbit             | When dispatching Rabbit Team               |
 | RabbitReturn       | When Rabbit Team returns                   |
-| Idle               | When no announcements for 65-90 seconds    |
+| Idle               | When idle (time configurable in settings)  |
 | OnOverWork         | When clicking End Management (audio only)  |
+| AgentHurt          | When an Agent takes heavy damage (>=60% HP)|
 
 === Placeholders ===
 
-You can use placeholders in your announcement text:
+You can use placeholders in your announcement text. Select from the lists
+on the right side when editing a tag, then click "Add" or double-click.
 
-- #0 : Agent name (for AgentDie, AgentPanic, OnAgentPanicReturn, OnGetEGOgift)
-- $0 : Abnormality name (for CounterToZero, Suppress)
+Check "Translate Placeholders" to see descriptions instead of raw codes.
+
+Agent placeholders (for AgentDie, AgentPanic, OnAgentPanicReturn,
+                    OnGetEGOgift, AgentHurt):
+- #0                   : Agent name
+- [#CurrentSefira_LEB] : Agent's department
+- [#AgentLevel_LEB]    : Agent level
+
+Abnormality placeholders (for CounterToZero, Suppress):
+- $0                   : Abnormality name
+- [$CurrentSefira_LEB] : Abnormality's department
+- [$RiskLevel_LEB]     : Risk level
+
+Global placeholders (available for all tags):
+- [PlayerHour_LEB]     : Current hour
+- [PlayerMinute_LEB]   : Current minute
+- [PlayerSecond_LEB]   : Current second
+- [NowEnergy_LEB]      : Current energy
+- [NeedEnergy_LEB]     : Required energy
+- [StillShort_LEB]     : Remaining energy needed
 
 === Assigning Images ===
 
@@ -103,7 +123,7 @@ If an image doesn't match the required size, you'll be prompted to:
 
 === Generate All Button ===
 
-- Click "Generate All" to create all 16 base tags for the current language
+- Click "Generate All" to create all 17 base tags for the current language
 - Useful when Auto-Generate is disabled or tags are missing
 - Existing text content is preserved
 
@@ -126,9 +146,11 @@ existing mod to edit it.
 
 === Undo/Redo ===
 
+- Check "Enable Undo/Redo" checkbox to show the Undo/Redo buttons
 - Click "Undo" to revert the last change
 - Click "Redo" to restore an undone change
 - Only one step of undo/redo is supported
+- Note: This feature is experimental and may have issues
 
 --------------------------------------------------------------------------------
                         OUTPUT STRUCTURE
