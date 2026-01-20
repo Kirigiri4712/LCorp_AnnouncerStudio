@@ -1,26 +1,95 @@
 # Visual Studio
 .vs/
+*.rsuser
+*.sln.docstates
 
 # Build output
 bin/
 obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
 
 # User-specific files
 *.user
 *.suo
 *.userosscache
-*.sln.docstates
+*.userprefs
+
+# Mono auto generated files
+mono_crash.*
 
 # NuGet
 packages/
 *.nupkg
+*.snupkg
+.nuget/
+[Pp]ackages/
+project.lock.json
+project.fragment.lock.json
 
-# Rider
+# Rider / JetBrains
 .idea/
+*.sln.iml
+
+# VS Code
+.vscode/
 
 # OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
+
+# Windows image file caches
+[Tt]humbs.db
+*.stackdump
+
+# Backup files
+*~
+*.bak
+*.swp
+
+# Publish output
+publish/
+[Pp]ublish/
+
+# .NET Core
+*.dll
+*.exe
+!Announcer.ico
 
 # Application settings (local)
 settings.json
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+*.vspscc
+*.vssscc
+
+# Build logs
+*.log
+msbuild*.log
+
+# Crash dumps
+*.dmp
+
+# AI/Dev tools
+.serena/
+.mcp/
+CLAUDE.md
+run_serena.bat
