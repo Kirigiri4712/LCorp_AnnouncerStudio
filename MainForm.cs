@@ -772,6 +772,17 @@ public class MainForm : Form
         if (a.Quantity != oldQuantity || a.Random != oldRandom || a.AutoGenerateTags != oldAutoGenerateTags)
         {
             RenumberTags(a);
+
+            // If AutoGenerateTags is now enabled, ensure all tags exist
+            if (a.AutoGenerateTags)
+            {
+                var lang = cmbLanguage.Text.Trim();
+                if (!string.IsNullOrEmpty(lang))
+                {
+                    EnsureAllTagsExist(a, lang);
+                    RefreshTagList(a, lang);
+                }
+            }
         }
         a.BorderColor = Color.FromArgb((int)nudAlpha.Value, a.BorderColor.R, a.BorderColor.G, a.BorderColor.B);
         UpdateTagControlsVisibility();
@@ -793,172 +804,210 @@ public class MainForm : Form
 
     void RenumberTags(Announcer a)
     {
-        var lang = cmbLanguage.Text.Trim();
-        if (string.IsNullOrEmpty(lang)) return;
-        if (!a.Texts.ContainsKey(lang)) return;
-        var texts = a.Texts[lang];
+        var currentLang = cmbLanguage.Text.Trim();
+        if (string.IsNullOrEmpty(currentLang)) return;
+        if (!a.Texts.ContainsKey(currentLang)) return;
+
         var images = a.AssignedImages;
+        var sounds = a.AssignedSounds;
 
-        var currentOrder = lstTags.Items.Cast<string>().ToList();
-
-        var baseTags = new Dictionary<string, List<string>>();
-        foreach(var tag in texts.Keys.ToArray())
+        // Process all languages
+        foreach (var langKv in a.Texts)
         {
-            string baseTag;
-            if (tag.Contains("_") && int.TryParse(tag.Split('_').Last(), out _))
+            var texts = langKv.Value;
+
+            // Collect all base tags and their variants
+            var baseTags = new Dictionary<string, List<string>>();
+            foreach (var tag in texts.Keys.ToArray())
             {
-                var parts = tag.Split('_');
-                baseTag = string.Join("_", parts.Take(parts.Length - 1));
+                string baseTag = GetBaseTag(tag);
+                if (!baseTags.ContainsKey(baseTag)) baseTags[baseTag] = new List<string>();
+                baseTags[baseTag].Add(tag);
             }
-            else
+
+            foreach (var kv in baseTags)
             {
-                baseTag = tag;
+                var baseTag = kv.Key;
+                var variants = kv.Value;
+
+                if (!a.Random)
+                {
+                    // Convert to non-random: keep only baseTag
+                    // Save existing data (prefer _1, then baseTag)
+                    string? savedText = null;
+                    if (texts.TryGetValue(baseTag + "_1", out var t1)) savedText = t1;
+                    else if (texts.TryGetValue(baseTag, out var t0)) savedText = t0;
+
+                    // Remove all numbered variants and keep/create baseTag
+                    foreach (var v in variants.ToList())
+                    {
+                        if (v != baseTag)
+                        {
+                            texts.Remove(v);
+                        }
+                    }
+                    if (savedText != null)
+                    {
+                        texts[baseTag] = savedText;
+                    }
+                    else if (!texts.ContainsKey(baseTag))
+                    {
+                        texts[baseTag] = "";
+                    }
+                }
+                else
+                {
+                    // Convert to random: use numbered tags (_1, _2, etc.)
+                    // Save existing data
+                    var existingTexts = new Dictionary<int, string>();
+                    foreach (var v in variants)
+                    {
+                        if (v == baseTag)
+                        {
+                            existingTexts[1] = texts[v];
+                        }
+                        else if (v.StartsWith(baseTag + "_") && int.TryParse(v.Substring(baseTag.Length + 1), out var n))
+                        {
+                            existingTexts[n] = texts[v];
+                        }
+                    }
+
+                    // Remove all old variants
+                    foreach (var v in variants.ToList())
+                    {
+                        texts.Remove(v);
+                    }
+
+                    // Add numbered tags based on AutoGenerateTags setting
+                    if (a.AutoGenerateTags)
+                    {
+                        for (int i = 1; i <= a.Quantity; i++)
+                        {
+                            var tag = baseTag + "_" + i;
+                            texts[tag] = existingTexts.TryGetValue(i, out var t) ? t : "";
+                        }
+                    }
+                    else
+                    {
+                        // Manual mode: only create tags for existing data
+                        foreach (var kvText in existingTexts)
+                        {
+                            if (kvText.Key <= a.Quantity)
+                            {
+                                texts[baseTag + "_" + kvText.Key] = kvText.Value;
+                            }
+                        }
+                    }
+                }
             }
+        }
+
+        // Process images (shared across languages)
+        ProcessAssignmentsForRandom(a, images);
+        // Process sounds (shared across languages)
+        ProcessAssignmentsForRandom(a, sounds);
+
+        // Update lstTags for current language
+        RefreshTagList(a, currentLang);
+        UpdateTagLimitLabel();
+    }
+
+    void ProcessAssignmentsForRandom(Announcer a, Dictionary<string, string> assignments)
+    {
+        // Collect all base tags from assignments
+        var baseTags = new Dictionary<string, List<string>>();
+        foreach (var tag in assignments.Keys.ToArray())
+        {
+            string baseTag = GetBaseTag(tag);
             if (!baseTags.ContainsKey(baseTag)) baseTags[baseTag] = new List<string>();
             baseTags[baseTag].Add(tag);
         }
 
-        foreach(var kv in baseTags)
+        foreach (var kv in baseTags)
         {
             var baseTag = kv.Key;
             var variants = kv.Value;
 
             if (!a.Random)
             {
-                // have only baseTag
-                var tag1 = baseTag + "_1";
-                if (variants.Contains(tag1))
+                // Convert to non-random: keep only baseTag
+                string? savedValue = null;
+                if (assignments.TryGetValue(baseTag + "_1", out var v1)) savedValue = v1;
+                else if (assignments.TryGetValue(baseTag, out var v0)) savedValue = v0;
+
+                foreach (var v in variants.ToList())
                 {
-                    texts[baseTag] = texts[tag1];
-                    texts.Remove(tag1);
-                    if (images.ContainsKey(tag1))
-                    {
-                        images[baseTag] = images[tag1];
-                        images.Remove(tag1);
-                    }
-                    currentOrder = currentOrder.Select(t => t == tag1 ? baseTag : t).ToList();
+                    if (v != baseTag) assignments.Remove(v);
                 }
-                // remove _2 and above
-                for(int i = 2; ; i++)
+                if (savedValue != null)
                 {
-                    var tag = baseTag + "_" + i;
-                    if (texts.ContainsKey(tag))
-                    {
-                        texts.Remove(tag);
-                        images.Remove(tag);
-                        currentOrder.Remove(tag);
-                    }
-                    else break;
+                    assignments[baseTag] = savedValue;
                 }
             }
             else
             {
-                // have _1 to _Quantity
-                var existingTexts = new Dictionary<int, string>();
-                var existingImages = new Dictionary<int, string>();
-                foreach(var v in variants)
+                // Convert to random: use numbered tags
+                var existingValues = new Dictionary<int, string>();
+                foreach (var v in variants)
                 {
                     if (v == baseTag)
                     {
-                        existingTexts[1] = texts[v];
-                        if (images.ContainsKey(v)) existingImages[1] = images[v];
+                        existingValues[1] = assignments[v];
                     }
-                    else if (v.StartsWith(baseTag + "_") && int.TryParse(v.Substring(baseTag.Length + 1), out var n) && n >= 1 && n <= a.Quantity)
+                    else if (v.StartsWith(baseTag + "_") && int.TryParse(v.Substring(baseTag.Length + 1), out var n))
                     {
-                        existingTexts[n] = texts[v];
-                        if (images.ContainsKey(v)) existingImages[n] = images[v];
+                        existingValues[n] = assignments[v];
                     }
                 }
-                // remove all old variants that exceed Quantity
-                foreach(var v in variants.ToList())
+
+                // Remove all old variants
+                foreach (var v in variants.ToList())
                 {
-                    if (v.StartsWith(baseTag + "_") && int.TryParse(v.Substring(baseTag.Length + 1), out var n) && n > a.Quantity)
-                    {
-                        texts.Remove(v);
-                        images.Remove(v);
-                        currentOrder.Remove(v);
-                    }
+                    assignments.Remove(v);
                 }
-                // add _1 to _Quantity (only if AutoGenerateTags is enabled)
-                if (a.AutoGenerateTags)
+
+                // Restore with numbered tags
+                foreach (var kvVal in existingValues)
                 {
-                    // remove all old variants first
-                    foreach(var v in variants)
+                    if (kvVal.Key <= a.Quantity)
                     {
-                        texts.Remove(v);
-                        images.Remove(v);
-                        currentOrder.Remove(v);
-                    }
-                    for(int i = 1; i <= a.Quantity; i++)
-                    {
-                        var tag = baseTag + "_" + i;
-                        texts[tag] = existingTexts.TryGetValue(i, out var t) ? t : "";
-                        if (existingImages.TryGetValue(i, out var img))
-                        {
-                            images[tag] = img;
-                        }
-                        currentOrder.Add(tag);
-                    }
-                }
-                else
-                {
-                    // manual mode: convert base tag to _1, keep existing numbered tags
-                    foreach(var v in variants)
-                    {
-                        if (v == baseTag)
-                        {
-                            // Convert non-numbered tag to _1
-                            var tag1 = baseTag + "_1";
-                            texts[tag1] = texts[v];
-                            texts.Remove(v);
-                            if (images.ContainsKey(v))
-                            {
-                                images[tag1] = images[v];
-                                images.Remove(v);
-                            }
-                            currentOrder.Remove(v);
-                            currentOrder.Add(tag1);
-                        }
-                        else if (v.StartsWith(baseTag + "_") && int.TryParse(v.Substring(baseTag.Length + 1), out var n) && n >= 1 && n <= a.Quantity)
-                        {
-                            // already in texts, just make sure it's in currentOrder
-                            if (!currentOrder.Contains(v))
-                                currentOrder.Add(v);
-                        }
+                        assignments[baseTag + "_" + kvVal.Key] = kvVal.Value;
                     }
                 }
             }
         }
+    }
 
-        // update lstTags
+    string GetBaseTag(string tag)
+    {
+        if (tag.Contains("_") && int.TryParse(tag.Split('_').Last(), out _))
+        {
+            var parts = tag.Split('_');
+            return string.Join("_", parts.Take(parts.Length - 1));
+        }
+        return tag;
+    }
+
+    void RefreshTagList(Announcer a, string lang)
+    {
+        if (!a.Texts.TryGetValue(lang, out var texts)) return;
+
         lstTags.Items.Clear();
         var allTags = texts.Keys
             .OrderBy(t => {
-                string baseTag;
-                if (t.Contains("_") && int.TryParse(t.Split('_').Last(), out _))
-                {
-                    var parts = t.Split('_');
-                    baseTag = string.Join("_", parts.Take(parts.Length - 1));
-                }
-                else
-                {
-                    baseTag = t;
-                }
+                string baseTag = GetBaseTag(t);
                 int index = Array.IndexOf(Tags, baseTag);
                 return index >= 0 ? index : int.MaxValue;
             })
             .ThenBy(t => {
                 if (t.Contains("_") && int.TryParse(t.Split('_').Last(), out var n))
-                {
                     return n;
-                }
                 return 0;
             });
-        foreach(var tag in allTags)
+        foreach (var tag in allTags)
         {
             lstTags.Items.Add(tag);
         }
-        UpdateTagLimitLabel();
     }
 
     void UpdateTagLimitLabel()
@@ -1158,8 +1207,39 @@ public class MainForm : Form
         {
             lstTags.Items.Add(tag);
         }
-        
+
         UpdateTagLimitLabel();
+    }
+
+    // Ensures all tags exist for the current language without showing messages or saving undo state
+    void EnsureAllTagsExist(Announcer a, string lang)
+    {
+        if (string.IsNullOrEmpty(lang)) return;
+        if (!a.Texts.ContainsKey(lang))
+            a.Texts[lang] = new Dictionary<string, string>();
+
+        var texts = a.Texts[lang];
+
+        // Generate all missing tags based on Random and Quantity settings
+        foreach (var baseTag in Tags)
+        {
+            if (a.Random)
+            {
+                // Generate numbered variants
+                for (int i = 1; i <= a.Quantity; i++)
+                {
+                    var tag = baseTag + "_" + i;
+                    if (!texts.ContainsKey(tag))
+                        texts[tag] = "";
+                }
+            }
+            else
+            {
+                // Generate single tag
+                if (!texts.ContainsKey(baseTag))
+                    texts[baseTag] = "";
+            }
+        }
     }
 
     void RemoveAnnouncer()
