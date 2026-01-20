@@ -1,0 +1,1 @@
+C:\workspace\AnnouncerTool\bin\Release\net8.0-windows\win-x64\publish\win-x64\AnnouncerTool.exe

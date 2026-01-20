@@ -1,0 +1,15 @@
+C:\workspace\AnnouncerTool\bin\Debug\net8.0-windows\AnnouncerTool.exe
+C:\workspace\AnnouncerTool\bin\Debug\net8.0-windows\AnnouncerTool.deps.json
+C:\workspace\AnnouncerTool\bin\Debug\net8.0-windows\AnnouncerTool.runtimeconfig.json
+C:\workspace\AnnouncerTool\bin\Debug\net8.0-windows\AnnouncerTool.dll
+C:\workspace\AnnouncerTool\bin\Debug\net8.0-windows\AnnouncerTool.pdb
+C:\workspace\AnnouncerTool\obj\Debug\net8.0-windows\AnnouncerTool.csproj.ResolveComReference.cache
+C:\workspace\AnnouncerTool\obj\Debug\net8.0-windows\AnnouncerTool.GeneratedMSBuildEditorConfig.editorconfig
+C:\workspace\AnnouncerTool\obj\Debug\net8.0-windows\AnnouncerTool.AssemblyInfoInputs.cache
+C:\workspace\AnnouncerTool\obj\Debug\net8.0-windows\AnnouncerTool.AssemblyInfo.cs
+C:\workspace\AnnouncerTool\obj\Debug\net8.0-windows\AnnouncerTool.csproj.CoreCompileInputs.cache
+C:\workspace\AnnouncerTool\obj\Debug\net8.0-windows\AnnouncerTool.dll
+C:\workspace\AnnouncerTool\obj\Debug\net8.0-windows\refint\AnnouncerTool.dll
+C:\workspace\AnnouncerTool\obj\Debug\net8.0-windows\AnnouncerTool.pdb
+C:\workspace\AnnouncerTool\obj\Debug\net8.0-windows\AnnouncerTool.genruntimeconfig.cache
+C:\workspace\AnnouncerTool\obj\Debug\net8.0-windows\ref\AnnouncerTool.dll

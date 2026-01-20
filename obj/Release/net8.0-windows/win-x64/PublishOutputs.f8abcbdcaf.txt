@@ -1,0 +1,2 @@
+C:\workspace\AnnouncerTool\bin\Release\net8.0-windows\win-x64\publish\AnnouncerTool.pdb
+C:\workspace\AnnouncerTool\bin\Release\net8.0-windows\win-x64\publish\AnnouncerTool.exe
