@@ -12,6 +12,7 @@ using NAudio.Wave;
 public class AppSettings
 {
     public string Language { get; set; } = "en";
+    public bool TranslatePlaceholders { get; set; } = true;
 }
 
 public static class Localization
@@ -201,8 +202,13 @@ public class MainForm : Form
     string[] Tags = new[] {
         "Click","StartWork","HalfOverWork","OverWork","AgentDie","AgentPanic",
         "OnAgentPanicReturn","AllDie","OnGetEGOgift","CounterToZero","Suppress",
-        "QliphothMeltdown","Rabbit","RabbitReturn","Idle","OnOverWork"
+        "QliphothMeltdown","Rabbit","RabbitReturn","Idle","OnOverWork","AgentHurt"
     };
+
+    // Placeholder arrays for raw values (used when inserting)
+    static readonly string[] AgentPlaceholders = new[] { "#0", "[#CurrentSefira_LEB]", "[#AgentLevel_LEB]" };
+    static readonly string[] AbnormalityPlaceholders = new[] { "$0", "[$CurrentSefira_LEB]", "[$RiskLevel_LEB]" };
+    static readonly string[] GlobalPlaceholders = new[] { "[PlayerHour_LEB]", "[PlayerMinute_LEB]", "[PlayerSecond_LEB]", "[NowEnergy_LEB]", "[NeedEnergy_LEB]", "[StillShort_LEB]" };
 
     List<Announcer> announcers = new List<Announcer>();
 
@@ -211,12 +217,13 @@ public class MainForm : Form
     TextBox txtTagText;
     ComboBox cmbLanguage;
     ComboBox cmbBaseTags;
-    Button btnAddAnnouncer, btnRemoveAnnouncer, btnSetFolder, btnAssignImage, btnAssignSound, btnPlaySound, btnSaveMod, btnLoadMod, btnAddTag, btnRemoveTag, btnGenerateAllTags, btnAssignAnnouncerImage, btnAssignUIImage, btnAddEmployeeName, btnAddAbnormalityName, btnAddLanguage, btnRemoveLanguage, btnChangeColor;
-    Label lblFolder, lblImageAssigned, lblSoundAssigned, lblAnnouncerImage, lblUIImage, lblTagLimit, lblDeleteHint, lblLanguage, lblToolLanguage, lblQuantity, lblAlpha, lblFontSize, lblInstructions;
+    Button btnAddAnnouncer, btnRemoveAnnouncer, btnSetFolder, btnAssignImage, btnAssignSound, btnPlaySound, btnSaveMod, btnLoadMod, btnAddTag, btnRemoveTag, btnGenerateAllTags, btnAssignAnnouncerImage, btnAssignUIImage, btnAddLanguage, btnRemoveLanguage, btnChangeColor, btnAddPlaceholder;
+    ListBox lstAgentPlaceholders, lstAbnormalityPlaceholders, lstGlobalPlaceholders;
+    Label lblFolder, lblImageAssigned, lblSoundAssigned, lblAnnouncerImage, lblUIImage, lblTagLimit, lblDeleteHint, lblLanguage, lblToolLanguage, lblQuantity, lblAlpha, lblFontSize, lblInstructions, lblDoubleClickHint;
     PictureBox pbAnnouncerImage, pbUIImage, pbTagImage;
     Panel pnlColorPreview;
     TextBox txtAnnouncerName;
-    CheckBox chkRandom, chkAutoGenerateTags;
+    CheckBox chkRandom, chkAutoGenerateTags, chkTranslatePlaceholders;
     NumericUpDown nudQuantity, nudAlpha, nudFontSize;
     ComboBox cmbToolLanguage;
     string saveFolder = "";
@@ -237,7 +244,7 @@ public class MainForm : Form
     public MainForm()
     {
         Text = "Announcer Studio";
-        Width = 1200; Height = 870;
+        Width = 1210; Height = 870;
         StartPosition = FormStartPosition.CenterScreen;
 
         lstAnnouncers = new ListBox() { Left = 10, Top = 40, Width = 200, Height = 420 };
@@ -359,13 +366,35 @@ public class MainForm : Form
         nudFontSize.ValueChanged += (s, e) => UpdateTagTextFontSize();
         Controls.Add(nudFontSize);
 
-        btnAddEmployeeName = new Button() { Left = 970, Top = 80, Width = 140, Text = "Add Agent (#0)" };
-        btnAddEmployeeName.Click += (s,e)=> AddEmployeeName();
-        Controls.Add(btnAddEmployeeName);
+        // Placeholder lists with add button
+        // Agent placeholders: #0, [#CurrentSefira_LEB], [#AgentLevel_LEB]
+        lstAgentPlaceholders = new ListBox() { Left = 970, Top = 80, Width = 160, Height = 50 };
+        lstAgentPlaceholders.Items.AddRange(new object[] { "#0", "[#CurrentSefira_LEB]", "[#AgentLevel_LEB]" });
+        lstAgentPlaceholders.DoubleClick += (s, e) => AddSelectedPlaceholder(lstAgentPlaceholders);
+        Controls.Add(lstAgentPlaceholders);
 
-        btnAddAbnormalityName = new Button() { Left = 970, Top = 110, Width = 140, Text = "Add Abnormality ($0)" };
-        btnAddAbnormalityName.Click += (s,e)=> AddAbnormalityName();
-        Controls.Add(btnAddAbnormalityName);
+        // Abnormality placeholders: $0, [$CurrentSefira_LEB], [$RiskLevel_LEB]
+        lstAbnormalityPlaceholders = new ListBox() { Left = 970, Top = 135, Width = 160, Height = 50 };
+        lstAbnormalityPlaceholders.Items.AddRange(new object[] { "$0", "[$CurrentSefira_LEB]", "[$RiskLevel_LEB]" });
+        lstAbnormalityPlaceholders.DoubleClick += (s, e) => AddSelectedPlaceholder(lstAbnormalityPlaceholders);
+        Controls.Add(lstAbnormalityPlaceholders);
+
+        // Global placeholders (always available)
+        lstGlobalPlaceholders = new ListBox() { Left = 970, Top = 190, Width = 160, Height = 100 };
+        lstGlobalPlaceholders.Items.AddRange(new object[] { "[PlayerHour_LEB]", "[PlayerMinute_LEB]", "[PlayerSecond_LEB]", "[NowEnergy_LEB]", "[NeedEnergy_LEB]", "[StillShort_LEB]" });
+        lstGlobalPlaceholders.DoubleClick += (s, e) => AddSelectedPlaceholder(lstGlobalPlaceholders);
+        Controls.Add(lstGlobalPlaceholders);
+
+        btnAddPlaceholder = new Button() { Left = 1135, Top = 150, Width = 50, Text = "Add" };
+        btnAddPlaceholder.Click += (s, e) => AddSelectedPlaceholderFromAnyList();
+        Controls.Add(btnAddPlaceholder);
+
+        lblDoubleClickHint = new Label() { Left = 1135, Top = 175, Width = 60, Height = 30, Text = "or Double\nClick", ForeColor = Color.Gray, Font = new Font(Font.FontFamily, 7) };
+        Controls.Add(lblDoubleClickHint);
+
+        chkTranslatePlaceholders = new CheckBox() { Left = 970, Top = 295, Width = 180, Text = "Translate Placeholders", Checked = true };
+        chkTranslatePlaceholders.CheckedChanged += (s, e) => UpdatePlaceholderListItems();
+        Controls.Add(chkTranslatePlaceholders);
 
         btnAssignImage = new Button() { Left = 450, Top = 330, Width = 120, Text = "Assign Image..." };
         btnAssignImage.Click += (s,e)=> AssignImageToSelectedTag();
@@ -455,7 +484,8 @@ public class MainForm : Form
         {
             var settings = new AppSettings
             {
-                Language = Localization.CurrentLanguage
+                Language = Localization.CurrentLanguage,
+                TranslatePlaceholders = chkTranslatePlaceholders.Checked
             };
             var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(SettingsFilePath, json);
@@ -483,6 +513,7 @@ public class MainForm : Form
                         Localization.CurrentLanguage = settings.Language;
                         cmbToolLanguage.SelectedIndex = idx;
                     }
+                    chkTranslatePlaceholders.Checked = settings.TranslatePlaceholders;
                 }
             }
         }
@@ -567,8 +598,6 @@ public class MainForm : Form
         btnAddLanguage.Text = Localization.Get("AddLanguageShort");
         btnRemoveLanguage.Text = Localization.Get("RemoveLanguage");
         btnAddTag.Text = Localization.Get("Add");
-        btnAddEmployeeName.Text = Localization.Get("AddAgent");
-        btnAddAbnormalityName.Text = Localization.Get("AddAbnormality");
         btnAssignImage.Text = Localization.Get("AssignImage");
         btnAssignSound.Text = Localization.Get("AssignSound");
         btnSaveMod.Text = Localization.Get("SaveMod");
@@ -582,6 +611,11 @@ public class MainForm : Form
         lblToolLanguage.Text = Localization.Get("ToolLanguage");
         btnUndo.Text = "← " + Localization.Get("Undo");
         btnRedo.Text = Localization.Get("Redo") + " →";
+        btnAddPlaceholder.Text = Localization.Get("Add");
+        chkTranslatePlaceholders.Text = Localization.Get("TranslatePlaceholders");
+
+        // Update placeholder lists if translation is enabled
+        UpdatePlaceholderListItems();
 
         // Update cmbBaseTags with localized tag names
         var selectedBaseTag = cmbBaseTags.SelectedIndex >= 0 ? Tags[cmbBaseTags.SelectedIndex] : null;
@@ -638,6 +672,7 @@ public class MainForm : Form
 
     void OnLanguageChanged()
     {
+        if (isUpdatingAnnouncerSelection) return;
         var idx = lstAnnouncers.SelectedIndex;
         if (idx < 0) return;
         
@@ -1236,27 +1271,34 @@ public class MainForm : Form
             baseTag = tag.Substring(0, lastUnderscore);
         }
 
-        // #0 (Agent name) - only for: AgentDie, AgentPanic, OnAgentPanicReturn, OnGetEGOgift
-        var agentTags = new[] { "AgentDie", "AgentPanic", "OnAgentPanicReturn", "OnGetEGOgift" };
-        btnAddEmployeeName.Enabled = agentTags.Contains(baseTag);
+        // Agent placeholders - only for: AgentDie, AgentPanic, OnAgentPanicReturn, OnGetEGOgift, AgentHurt
+        var agentTags = new[] { "AgentDie", "AgentPanic", "OnAgentPanicReturn", "OnGetEGOgift", "AgentHurt" };
+        lstAgentPlaceholders.Enabled = agentTags.Contains(baseTag);
 
-        // $0 (Abnormality name) - only for: CounterToZero, Suppress
+        // Abnormality placeholders - only for: CounterToZero, Suppress
         var abnormalityTags = new[] { "CounterToZero", "Suppress" };
-        btnAddAbnormalityName.Enabled = abnormalityTags.Contains(baseTag);
+        lstAbnormalityPlaceholders.Enabled = abnormalityTags.Contains(baseTag);
+
+        // Global placeholders - always enabled
+        lstGlobalPlaceholders.Enabled = true;
     }
 
     void ShowTagEditUI()
     {
         // Note: lblLanguage, cmbLanguage, btnAddLanguage are always visible
         txtTagText.Visible = true;
-        btnAddEmployeeName.Visible = true;
-        btnAddAbnormalityName.Visible = true;
         btnAssignImage.Visible = true;
         lblImageAssigned.Visible = true;
         pbTagImage.Visible = true;
         btnAssignSound.Visible = true;
         btnPlaySound.Visible = true;
         lblSoundAssigned.Visible = true;
+        lstAgentPlaceholders.Visible = true;
+        lstAbnormalityPlaceholders.Visible = true;
+        lstGlobalPlaceholders.Visible = true;
+        btnAddPlaceholder.Visible = true;
+        lblDoubleClickHint.Visible = true;
+        chkTranslatePlaceholders.Visible = true;
     }
 
     void HideTagEditUI()
@@ -1264,14 +1306,18 @@ public class MainForm : Form
         // Note: lblLanguage, cmbLanguage, btnAddLanguage should always remain visible
         // They are needed to add/select languages even when no tag is selected
         txtTagText.Visible = false;
-        btnAddEmployeeName.Visible = false;
-        btnAddAbnormalityName.Visible = false;
         btnAssignImage.Visible = false;
         lblImageAssigned.Visible = false;
         pbTagImage.Visible = false;
         btnAssignSound.Visible = false;
         btnPlaySound.Visible = false;
         lblSoundAssigned.Visible = false;
+        lstAgentPlaceholders.Visible = false;
+        lstAbnormalityPlaceholders.Visible = false;
+        lstGlobalPlaceholders.Visible = false;
+        btnAddPlaceholder.Visible = false;
+        lblDoubleClickHint.Visible = false;
+        chkTranslatePlaceholders.Visible = false;
     }
 
     private void TxtTagText_Leave(object? sender, EventArgs e)
@@ -1294,20 +1340,84 @@ public class MainForm : Form
         }
     }
 
-    void AddEmployeeName()
+    void AddPlaceholder(string placeholder)
     {
         var pos = txtTagText.SelectionStart;
-        txtTagText.Text = txtTagText.Text.Insert(pos, "#0");
-        txtTagText.SelectionStart = pos + 2;
+        txtTagText.Text = txtTagText.Text.Insert(pos, placeholder);
+        txtTagText.SelectionStart = pos + placeholder.Length;
         txtTagText.Focus();
     }
 
-    void AddAbnormalityName()
+    void AddSelectedPlaceholder(ListBox listBox)
     {
-        var pos = txtTagText.SelectionStart;
-        txtTagText.Text = txtTagText.Text.Insert(pos, "$0");
-        txtTagText.SelectionStart = pos + 2;
-        txtTagText.Focus();
+        if (listBox.SelectedIndex >= 0)
+        {
+            // Get the raw placeholder value from the corresponding array
+            string placeholder;
+            if (listBox == lstAgentPlaceholders)
+                placeholder = AgentPlaceholders[listBox.SelectedIndex];
+            else if (listBox == lstAbnormalityPlaceholders)
+                placeholder = AbnormalityPlaceholders[listBox.SelectedIndex];
+            else
+                placeholder = GlobalPlaceholders[listBox.SelectedIndex];
+            AddPlaceholder(placeholder);
+        }
+    }
+
+    void AddSelectedPlaceholderFromAnyList()
+    {
+        // Check each list for selection and add if found (use index to get raw value)
+        if (lstAgentPlaceholders.Enabled && lstAgentPlaceholders.SelectedIndex >= 0)
+        {
+            AddPlaceholder(AgentPlaceholders[lstAgentPlaceholders.SelectedIndex]);
+        }
+        else if (lstAbnormalityPlaceholders.Enabled && lstAbnormalityPlaceholders.SelectedIndex >= 0)
+        {
+            AddPlaceholder(AbnormalityPlaceholders[lstAbnormalityPlaceholders.SelectedIndex]);
+        }
+        else if (lstGlobalPlaceholders.SelectedIndex >= 0)
+        {
+            AddPlaceholder(GlobalPlaceholders[lstGlobalPlaceholders.SelectedIndex]);
+        }
+    }
+
+    void UpdatePlaceholderListItems()
+    {
+        bool translate = chkTranslatePlaceholders.Checked;
+
+        // Save current selections
+        int agentIdx = lstAgentPlaceholders.SelectedIndex;
+        int abnormalityIdx = lstAbnormalityPlaceholders.SelectedIndex;
+        int globalIdx = lstGlobalPlaceholders.SelectedIndex;
+
+        // Update Agent placeholders
+        lstAgentPlaceholders.Items.Clear();
+        for (int i = 0; i < AgentPlaceholders.Length; i++)
+        {
+            lstAgentPlaceholders.Items.Add(translate ? Localization.Get("Placeholder_Agent_" + i) : AgentPlaceholders[i]);
+        }
+
+        // Update Abnormality placeholders
+        lstAbnormalityPlaceholders.Items.Clear();
+        for (int i = 0; i < AbnormalityPlaceholders.Length; i++)
+        {
+            lstAbnormalityPlaceholders.Items.Add(translate ? Localization.Get("Placeholder_Abnormality_" + i) : AbnormalityPlaceholders[i]);
+        }
+
+        // Update Global placeholders
+        lstGlobalPlaceholders.Items.Clear();
+        for (int i = 0; i < GlobalPlaceholders.Length; i++)
+        {
+            lstGlobalPlaceholders.Items.Add(translate ? Localization.Get("Placeholder_Global_" + i) : GlobalPlaceholders[i]);
+        }
+
+        // Restore selections
+        if (agentIdx >= 0 && agentIdx < lstAgentPlaceholders.Items.Count)
+            lstAgentPlaceholders.SelectedIndex = agentIdx;
+        if (abnormalityIdx >= 0 && abnormalityIdx < lstAbnormalityPlaceholders.Items.Count)
+            lstAbnormalityPlaceholders.SelectedIndex = abnormalityIdx;
+        if (globalIdx >= 0 && globalIdx < lstGlobalPlaceholders.Items.Count)
+            lstGlobalPlaceholders.SelectedIndex = globalIdx;
     }
 
     void AddLanguage()

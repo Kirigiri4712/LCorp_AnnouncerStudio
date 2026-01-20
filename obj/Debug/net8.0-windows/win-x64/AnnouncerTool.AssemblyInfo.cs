@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AnnouncerTool")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+571f58528bee1fc01c06b399c18632dd3f1e356f")]
 [assembly: System.Reflection.AssemblyProductAttribute("AnnouncerTool")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AnnouncerTool")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
