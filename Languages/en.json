@@ -90,5 +90,6 @@
   "Placeholder_Global_2": "Current Second",
   "Placeholder_Global_3": "Current Energy",
   "Placeholder_Global_4": "Required Energy",
-  "Placeholder_Global_5": "Remaining Energy"
+  "Placeholder_Global_5": "Remaining Energy",
+  "EnableUndoRedo": "Enable Undo/Redo"
 }

@@ -13,6 +13,7 @@ public class AppSettings
 {
     public string Language { get; set; } = "en";
     public bool TranslatePlaceholders { get; set; } = true;
+    public bool EnableUndoRedo { get; set; } = false;
 }
 
 public static class Localization
@@ -223,7 +224,7 @@ public class MainForm : Form
     PictureBox pbAnnouncerImage, pbUIImage, pbTagImage;
     Panel pnlColorPreview;
     TextBox txtAnnouncerName;
-    CheckBox chkRandom, chkAutoGenerateTags, chkTranslatePlaceholders;
+    CheckBox chkRandom, chkAutoGenerateTags, chkTranslatePlaceholders, chkEnableUndoRedo;
     NumericUpDown nudQuantity, nudAlpha, nudFontSize;
     ComboBox cmbToolLanguage;
     string saveFolder = "";
@@ -432,15 +433,23 @@ public class MainForm : Form
         cmbToolLanguage.SelectedIndexChanged += (s, e) => OnToolLanguageChanged();
         Controls.Add(cmbToolLanguage);
 
-        btnUndo = new Button() { Left = 935, Top = 570, Width = 60, Text = "← Undo", Enabled = false };
+        btnUndo = new Button() { Left = 935, Top = 570, Width = 60, Text = "← Undo", Enabled = false, Visible = false };
         btnUndo.Click += (s, e) => Undo();
         Controls.Add(btnUndo);
 
-        btnRedo = new Button() { Left = 1000, Top = 570, Width = 60, Text = "Redo →", Enabled = false };
+        btnRedo = new Button() { Left = 1000, Top = 570, Width = 60, Text = "Redo →", Enabled = false, Visible = false };
         btnRedo.Click += (s, e) => Redo();
         Controls.Add(btnRedo);
 
-        lblInstructions = new Label() { Left = 450, Top = 600, Width = 520, Height = 120, Text = "", AutoSize=false };
+        chkEnableUndoRedo = new CheckBox() { Left = 935, Top = 595, Width = 150, Text = "Enable Undo/Redo", Checked = false };
+        chkEnableUndoRedo.CheckedChanged += (s, e) => {
+            btnUndo.Visible = chkEnableUndoRedo.Checked;
+            btnRedo.Visible = chkEnableUndoRedo.Checked;
+            SaveSettings();
+        };
+        Controls.Add(chkEnableUndoRedo);
+
+        lblInstructions = new Label() { Left = 450, Top = 620, Width = 520, Height = 120, Text = "", AutoSize=false };
         Controls.Add(lblInstructions);
 
         // Load languages from JSON files, then load settings and apply localization
@@ -485,7 +494,8 @@ public class MainForm : Form
             var settings = new AppSettings
             {
                 Language = Localization.CurrentLanguage,
-                TranslatePlaceholders = chkTranslatePlaceholders.Checked
+                TranslatePlaceholders = chkTranslatePlaceholders.Checked,
+                EnableUndoRedo = chkEnableUndoRedo.Checked
             };
             var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(SettingsFilePath, json);
@@ -514,6 +524,9 @@ public class MainForm : Form
                         cmbToolLanguage.SelectedIndex = idx;
                     }
                     chkTranslatePlaceholders.Checked = settings.TranslatePlaceholders;
+                    chkEnableUndoRedo.Checked = settings.EnableUndoRedo;
+                    btnUndo.Visible = settings.EnableUndoRedo;
+                    btnRedo.Visible = settings.EnableUndoRedo;
                 }
             }
         }
@@ -613,6 +626,7 @@ public class MainForm : Form
         btnRedo.Text = Localization.Get("Redo") + " →";
         btnAddPlaceholder.Text = Localization.Get("Add");
         chkTranslatePlaceholders.Text = Localization.Get("TranslatePlaceholders");
+        chkEnableUndoRedo.Text = Localization.Get("EnableUndoRedo");
 
         // Update placeholder lists if translation is enabled
         UpdatePlaceholderListItems();

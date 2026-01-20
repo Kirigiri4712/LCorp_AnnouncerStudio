@@ -1,4 +1,5 @@
 {
   "Language": "en",
-  "TranslatePlaceholders": true
+  "TranslatePlaceholders": true,
+  "EnableUndoRedo": false
 }

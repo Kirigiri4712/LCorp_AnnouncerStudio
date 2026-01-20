@@ -90,5 +90,6 @@
   "Placeholder_Global_2": "現在時刻（秒）",
   "Placeholder_Global_3": "現在エネルギー",
   "Placeholder_Global_4": "必要エネルギー",
-  "Placeholder_Global_5": "残りエネルギー"
+  "Placeholder_Global_5": "残りエネルギー",
+  "EnableUndoRedo": "元に戻す/やり直しを有効化"
 }
