@@ -2,6 +2,8 @@
 
 [English](README.md) | **日本語**
 
+<img width="1186" height="863" alt="スクリーンショット 2026-01-05 224526" src="https://github.com/user-attachments/assets/14c7b253-c602-4eb3-8de3-94bcd04a1296" />
+
 これはLobotomy CorporationのMODではなく、「L Corp's Announcers」 における、アナウンサーの作成支援のためのツールです。
 言語関係なく使用可能です。
 
