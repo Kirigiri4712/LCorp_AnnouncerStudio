@@ -102,10 +102,13 @@ If an image doesn't match the required size, you'll be prompted to:
 - No (Crop)      : Scale while maintaining aspect ratio, crop excess
 - Cancel         : Use original without resizing
 
+Click the "×" button next to "Assign Image..." to remove the assigned image.
+
 === Assigning Audio ===
 
 - Click "Assign Sound..." to assign a WAV file to a tag
 - Click the play button to preview the assigned audio
+- Click the "×" button next to "Assign Sound..." to remove the assigned audio
 
 === Audio Normalization ===
 
