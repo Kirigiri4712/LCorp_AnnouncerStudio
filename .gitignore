@@ -90,7 +90,9 @@ msbuild*.log
 *.dmp
 
 # AI/Dev tools
+.claude/
 .serena/
 .mcp/
+.mcp.json
 CLAUDE.md
 run_serena.bat

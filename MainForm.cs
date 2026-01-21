@@ -2162,37 +2162,56 @@ public class MainForm : Form
                     var langRoot = new XElement("Language");
                     if (a.Texts.TryGetValue(lang, out var texts))
                     {
-                        bool firstElement = true;
-                        foreach(var kv in texts)
-                        {
-                            if (!string.IsNullOrEmpty(kv.Value))
-                            {
-                                // Add blank line before each element (except the first one)
-                                if (!firstElement)
-                                {
-                                    langRoot.Add(new System.Xml.Linq.XText("\n\n  "));
-                                }
-                                firstElement = false;
+                        // Sort tags: first by base tag order (Tags array), then by suffix number
+                        var sortedTexts = texts
+                            .Where(kv => !string.IsNullOrEmpty(kv.Value))
+                            .OrderBy(kv => {
+                                string baseTag = GetBaseTag(kv.Key);
+                                int index = Array.IndexOf(Tags, baseTag);
+                                return index >= 0 ? index : int.MaxValue;
+                            })
+                            .ThenBy(kv => {
+                                if (kv.Key.Contains("_") && int.TryParse(kv.Key.Split('_').Last(), out var n))
+                                    return n;
+                                return 0;
+                            });
 
-                                // Add _TEXT suffix for XML element names
-                                // Format: {BaseTag}_TEXT or {BaseTag}_TEXT_{Number}
-                                // Internal key is like "AgentDie" or "AgentDie_1"
-                                // Output should be "AgentDie_TEXT" or "AgentDie_TEXT_1"
-                                var xmlTagName = ConvertToXmlTagName(kv.Key);
-                                langRoot.Add(new XElement(xmlTagName, kv.Value));
-                            }
+                        foreach(var kv in sortedTexts)
+                        {
+                            // Add _TEXT suffix for XML element names
+                            // Format: {BaseTag}_TEXT or {BaseTag}_TEXT_{Number}
+                            // Internal key is like "AgentDie" or "AgentDie_1"
+                            // Output should be "AgentDie_TEXT" or "AgentDie_TEXT_1"
+                            var xmlTagName = ConvertToXmlTagName(kv.Key);
+                            langRoot.Add(new XElement(xmlTagName, kv.Value));
                         }
                     }
-                    var doc = new XDocument(new XDeclaration("1.0","utf-8","yes"), langRoot);
-                    var settings = new System.Xml.XmlWriterSettings
+                    // Write XML with blank lines between different base tags
+                    using (var sw = new StreamWriter(xmlPath, false, System.Text.Encoding.UTF8))
                     {
-                        Indent = true,
-                        IndentChars = "  ",
-                        Encoding = System.Text.Encoding.UTF8
-                    };
-                    using (var writer = System.Xml.XmlWriter.Create(xmlPath, settings))
-                    {
-                        doc.Save(writer);
+                        sw.WriteLine("<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>");
+                        sw.WriteLine("<Language>");
+                        string? lastBaseTag = null;
+                        foreach (var el in langRoot.Elements())
+                        {
+                            // Extract base tag from XML element name (e.g., "AgentDie_TEXT_1" -> "AgentDie")
+                            var elName = el.Name.LocalName;
+                            var currentBaseTag = elName.Replace("_TEXT", "");
+                            if (currentBaseTag.Contains("_") && int.TryParse(currentBaseTag.Split('_').Last(), out _))
+                            {
+                                var parts = currentBaseTag.Split('_');
+                                currentBaseTag = string.Join("_", parts.Take(parts.Length - 1));
+                            }
+
+                            // Add blank line when base tag changes (except for first element)
+                            if (lastBaseTag != null && lastBaseTag != currentBaseTag)
+                            {
+                                sw.WriteLine();
+                            }
+                            lastBaseTag = currentBaseTag;
+                            sw.WriteLine($"  <{el.Name}>{el.Value}</{el.Name}>");
+                        }
+                        sw.WriteLine("</Language>");
                     }
                 }
             }
