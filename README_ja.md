@@ -3,7 +3,7 @@
 [English](README.md) | **日本語**
 
 <img width="1196" height="863" alt="スクリーンショット 2026-01-21 225431" src="https://github.com/user-attachments/assets/c4ed3207-f60c-4aa4-b7bd-70404e4930b1" />
-
+VOICEVOX:ずんだもん
 
 これはLobotomy CorporationのMODではなく、「L Corp's Announcers」 における、アナウンサーの作成支援のためのツールです。
 言語関係なく使用可能です。
