@@ -1,4 +1,4 @@
-# アナウンサー作成ツール
+# Announcers Studio
 
 Lobotomy Corporation用のアナウンサーMODを作成するためのGUIツールです。
 

@@ -63,7 +63,7 @@ public static class Localization
             Strings["en"] = new Dictionary<string, string>
             {
                 ["LanguageName"] = "English",
-                ["WindowTitle"] = "Announcer Creator"
+                ["WindowTitle"] = "Announcers Studio"
             };
             if (!AvailableLanguages.Contains("en"))
                 AvailableLanguages.Add("en");
@@ -249,7 +249,7 @@ public class MainForm : Form
 
     public MainForm()
     {
-        Text = "Announcer Studio";
+        Text = "Announcers Studio";
         Width = 1210; Height = 870;
         StartPosition = FormStartPosition.CenterScreen;
 

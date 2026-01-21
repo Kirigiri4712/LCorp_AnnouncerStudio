@@ -1,4 +1,4 @@
-# Announcer Creator Tool
+# Announcers Studio
 
 A GUI tool for creating Announcer MODs for Lobotomy Corporation.
 
