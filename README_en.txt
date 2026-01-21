@@ -105,8 +105,24 @@ If an image doesn't match the required size, you'll be prompted to:
 === Assigning Audio ===
 
 - Click "Assign Sound..." to assign a WAV file to a tag
-- You'll be prompted to normalize the audio volume
 - Click the play button to preview the assigned audio
+
+=== Audio Normalization ===
+
+When "Normalize Audio" checkbox is enabled (default: on), audio files are
+automatically processed when assigned to balance volume levels.
+
+The Compression slider (0-100%) controls dynamic range compression:
+- 0%   : No compression - original dynamics preserved, only volume normalized
+- 50%  : Moderate compression - balanced between natural sound and consistency
+- 100% : Maximum compression - flattens volume differences significantly
+
+Recommended settings:
+- 0-30%   : Natural speech with varying emphasis
+- 30-60%  : Balanced (recommended for most use cases)
+- 60-100% : Speech with extreme volume variations
+
+If you experience audio artifacts, try lowering the compression value.
 
 === Random Announcements ===
 
@@ -151,6 +167,17 @@ existing mod to edit it.
 - Click "Redo" to restore an undone change
 - Only one step of undo/redo is supported
 - Note: This feature is experimental and may have issues
+
+=== Settings Persistence ===
+
+The following settings are automatically saved and restored on next launch:
+- Tool language (English/Japanese)
+- Translate Placeholders checkbox state
+- Enable Undo/Redo checkbox state
+- Normalize Audio checkbox state
+- Compression slider value
+
+Settings are stored in settings.json in the application folder.
 
 --------------------------------------------------------------------------------
                         OUTPUT STRUCTURE

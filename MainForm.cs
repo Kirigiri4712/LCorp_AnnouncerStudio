@@ -14,6 +14,8 @@ public class AppSettings
     public string Language { get; set; } = "en";
     public bool TranslatePlaceholders { get; set; } = true;
     public bool EnableUndoRedo { get; set; } = false;
+    public bool NormalizeAudio { get; set; } = true;
+    public int CompressionLevel { get; set; } = 50;
 }
 
 public static class Localization
@@ -224,8 +226,10 @@ public class MainForm : Form
     PictureBox pbAnnouncerImage, pbUIImage, pbTagImage;
     Panel pnlColorPreview;
     TextBox txtAnnouncerName;
-    CheckBox chkRandom, chkAutoGenerateTags, chkTranslatePlaceholders, chkEnableUndoRedo;
+    CheckBox chkRandom, chkAutoGenerateTags, chkTranslatePlaceholders, chkEnableUndoRedo, chkNormalizeAudio;
     NumericUpDown nudQuantity, nudAlpha, nudFontSize;
+    TrackBar trkCompression;
+    Label lblCompressionValue;
     ComboBox cmbToolLanguage;
     string saveFolder = "";
     WaveOutEvent? waveOut;
@@ -416,6 +420,24 @@ public class MainForm : Form
         lblSoundAssigned = new Label() { Left = 970, Top = 335, Width = 180, Text = "No sound assigned" };
         Controls.Add(lblSoundAssigned);
 
+        chkNormalizeAudio = new CheckBox() { Left = 790, Top = 355, Width = 120, Text = "Normalize Audio", Checked = true, Visible = false };
+        chkNormalizeAudio.CheckedChanged += (s, e) => {
+            if (!isInitializing) SaveSettings();
+            trkCompression.Enabled = chkNormalizeAudio.Checked;
+            lblCompressionValue.Enabled = chkNormalizeAudio.Checked;
+        };
+        Controls.Add(chkNormalizeAudio);
+
+        trkCompression = new TrackBar() { Left = 915, Top = 352, Width = 120, Minimum = 0, Maximum = 100, Value = 50, TickFrequency = 25, Visible = false };
+        trkCompression.ValueChanged += (s, e) => {
+            lblCompressionValue.Text = $"{trkCompression.Value}%";
+            if (!isInitializing) SaveSettings();
+        };
+        Controls.Add(trkCompression);
+
+        lblCompressionValue = new Label() { Left = 1040, Top = 358, Width = 40, Text = "50%", Visible = false };
+        Controls.Add(lblCompressionValue);
+
         pbTagImage = new PictureBox() { Left = 450, Top = 360, Width = 200, Height = 200, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
         Controls.Add(pbTagImage);
 
@@ -503,7 +525,9 @@ public class MainForm : Form
             {
                 Language = Localization.CurrentLanguage,
                 TranslatePlaceholders = chkTranslatePlaceholders.Checked,
-                EnableUndoRedo = chkEnableUndoRedo.Checked
+                EnableUndoRedo = chkEnableUndoRedo.Checked,
+                NormalizeAudio = chkNormalizeAudio.Checked,
+                CompressionLevel = trkCompression.Value
             };
             var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(SettingsFilePath, json);
@@ -535,6 +559,11 @@ public class MainForm : Form
                     chkEnableUndoRedo.Checked = settings.EnableUndoRedo;
                     btnUndo.Visible = settings.EnableUndoRedo;
                     btnRedo.Visible = settings.EnableUndoRedo;
+                    chkNormalizeAudio.Checked = settings.NormalizeAudio;
+                    trkCompression.Value = Math.Clamp(settings.CompressionLevel, 0, 100);
+                    lblCompressionValue.Text = $"{trkCompression.Value}%";
+                    trkCompression.Enabled = settings.NormalizeAudio;
+                    lblCompressionValue.Enabled = settings.NormalizeAudio;
                 }
             }
         }
@@ -635,6 +664,7 @@ public class MainForm : Form
         btnAddPlaceholder.Text = Localization.Get("Add");
         chkTranslatePlaceholders.Text = Localization.Get("TranslatePlaceholders");
         chkEnableUndoRedo.Text = Localization.Get("EnableUndoRedo");
+        chkNormalizeAudio.Text = Localization.Get("NormalizeAudio");
 
         // Update placeholder lists if translation is enabled
         UpdatePlaceholderListItems();
@@ -1412,6 +1442,9 @@ public class MainForm : Form
         btnAssignSound.Visible = true;
         btnPlaySound.Visible = true;
         lblSoundAssigned.Visible = true;
+        chkNormalizeAudio.Visible = true;
+        trkCompression.Visible = true;
+        lblCompressionValue.Visible = true;
         lstAgentPlaceholders.Visible = true;
         lstAbnormalityPlaceholders.Visible = true;
         lstGlobalPlaceholders.Visible = true;
@@ -1431,6 +1464,9 @@ public class MainForm : Form
         btnAssignSound.Visible = false;
         btnPlaySound.Visible = false;
         lblSoundAssigned.Visible = false;
+        chkNormalizeAudio.Visible = false;
+        trkCompression.Visible = false;
+        lblCompressionValue.Visible = false;
         lstAgentPlaceholders.Visible = false;
         lstAbnormalityPlaceholders.Visible = false;
         lstGlobalPlaceholders.Visible = false;
@@ -1807,110 +1843,178 @@ public class MainForm : Form
         using var ofd = new OpenFileDialog();
         ofd.Filter = "WAV Files|*.wav";
         if (ofd.ShowDialog() != DialogResult.OK) return;
-        
+
         SaveStateForUndo();
         var a = announcers[aidx];
         var sourceFile = ofd.FileName;
-        
-        // Ask if user wants to normalize the audio
-        var result = MessageBox.Show(
-            Localization.Get("NormalizeAudioQuestion"),
-            Localization.Get("NormalizeAudio"),
-            MessageBoxButtons.YesNo,
-            MessageBoxIcon.Question);
-        
-        if (result == DialogResult.Yes)
+
+        // Auto-normalize if checkbox is checked
+        if (chkNormalizeAudio.Checked)
         {
             try
             {
-                sourceFile = NormalizeWavFile(ofd.FileName);
-                MessageBox.Show(Localization.Get("NormalizeSuccess"), Localization.Get("NormalizeAudio"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+                sourceFile = NormalizeWavFile(ofd.FileName, trkCompression.Value);
             }
-            catch (Exception ex)
+            catch
             {
-                MessageBox.Show(Localization.Get("NormalizeFailed") + ex.Message, Localization.Get("Error"), MessageBoxButtons.OK, MessageBoxIcon.Error);
-                sourceFile = ofd.FileName; // Use original file on failure
+                // Use original file on failure
+                sourceFile = ofd.FileName;
             }
         }
-        
+
         a.AssignedSounds[tag] = sourceFile;
         lblSoundAssigned.Text = Path.GetFileName(sourceFile);
     }
 
 
-    string NormalizeWavFile(string inputPath)
+    string NormalizeWavFile(string inputPath, int compressionLevel)
     {
         // Create a temporary file for the normalized audio
         var outputPath = Path.Combine(Path.GetTempPath(), $"normalized_{Guid.NewGuid()}.wav");
 
-        // Target RMS level (around -14 dB, common for voice)
-        const float targetRms = 0.2f;
+        // compressionLevel: 0 = no compression (just normalize), 100 = maximum compression
+        float compressionAmount = compressionLevel / 100f;
+
+        const float targetRms = 0.22f;
+        const float maxOutput = 0.95f;
 
         using (var reader = new AudioFileReader(inputPath))
         {
-            float[] buffer = new float[reader.WaveFormat.SampleRate * reader.WaveFormat.Channels];
-            int samplesRead;
+            int sampleRate = reader.WaveFormat.SampleRate;
+            int channels = reader.WaveFormat.Channels;
 
-            // First pass: calculate RMS (Root Mean Square) for average loudness
-            double sumSquares = 0;
-            long totalSamples = 0;
-            float maxSample = 0f;
+            // Read all samples into memory for two-pass processing
+            var allSamples = new List<float>();
+            float[] buffer = new float[sampleRate * channels];
+            int samplesRead;
 
             while ((samplesRead = reader.Read(buffer, 0, buffer.Length)) > 0)
             {
                 for (int i = 0; i < samplesRead; i++)
                 {
-                    sumSquares += buffer[i] * buffer[i];
-                    var abs = Math.Abs(buffer[i]);
-                    if (abs > maxSample) maxSample = abs;
+                    allSamples.Add(buffer[i]);
                 }
-                totalSamples += samplesRead;
             }
 
-            if (totalSamples == 0 || sumSquares == 0)
-            {
-                // Silent audio, no normalization needed
-                return inputPath;
-            }
-
-            float currentRms = (float)Math.Sqrt(sumSquares / totalSamples);
-
-            if (currentRms == 0)
-            {
-                // Silent audio
-                return inputPath;
-            }
-
-            // Calculate normalization factor based on RMS
-            float normalizationFactor = targetRms / currentRms;
-
-            // Check if normalization would cause clipping, and limit if necessary
-            float predictedPeak = maxSample * normalizationFactor;
-            if (predictedPeak > 0.95f)
-            {
-                // Limit factor to prevent clipping
-                normalizationFactor = 0.95f / maxSample;
-            }
-
-            // Skip if already close to target (within 10%)
-            if (normalizationFactor > 0.9f && normalizationFactor < 1.1f)
+            if (allSamples.Count == 0)
             {
                 return inputPath;
             }
 
-            // Reset reader position
-            reader.Position = 0;
+            // Calculate window-based RMS for dynamic compression
+            // Use ~50ms windows for smooth envelope
+            int windowSize = Math.Max(1, sampleRate / 20);
+            int totalWindows = (allSamples.Count + windowSize - 1) / windowSize;
+            float[] windowRms = new float[totalWindows];
 
-            // Second pass: write normalized audio
+            for (int w = 0; w < totalWindows; w++)
+            {
+                int start = w * windowSize;
+                int end = Math.Min(start + windowSize, allSamples.Count);
+                double sum = 0;
+                for (int i = start; i < end; i++)
+                {
+                    sum += allSamples[i] * allSamples[i];
+                }
+                windowRms[w] = (float)Math.Sqrt(sum / (end - start));
+            }
+
+            // Smooth the RMS envelope (moving average) - more smoothing for less artifacts
+            int smoothingWindow = 7;
+            float[] smoothedRms = new float[totalWindows];
+            for (int w = 0; w < totalWindows; w++)
+            {
+                float sum = 0;
+                int count = 0;
+                for (int j = Math.Max(0, w - smoothingWindow); j <= Math.Min(totalWindows - 1, w + smoothingWindow); j++)
+                {
+                    sum += windowRms[j];
+                    count++;
+                }
+                smoothedRms[w] = sum / count;
+            }
+
+            // Calculate overall RMS (excluding very quiet windows)
+            float overallRms = 0;
+            int rmsCount = 0;
+            for (int w = 0; w < totalWindows; w++)
+            {
+                if (smoothedRms[w] > 0.01f)
+                {
+                    overallRms += smoothedRms[w];
+                    rmsCount++;
+                }
+            }
+            if (rmsCount > 0) overallRms /= rmsCount;
+
+            if (overallRms < 0.005f)
+            {
+                return inputPath;
+            }
+
+            // Base gain to reach target RMS
+            float baseGain = targetRms / overallRms;
+            if (baseGain > 4f) baseGain = 4f;
+            if (baseGain < 0.25f) baseGain = 0.25f;
+
+            // Compression parameters scaled by compressionLevel
+            // At 0%: no compression (ratio = 1:1)
+            // At 100%: heavy compression (ratio = 6:1)
+            float compRatio = 1f + (5f * compressionAmount);  // 1:1 to 6:1
+            float compThreshold = targetRms * (1f - 0.5f * compressionAmount);  // Higher threshold at low compression
+
+            // Apply compression and limiting per-sample
+            float[] outputSamples = new float[allSamples.Count];
+
+            for (int i = 0; i < allSamples.Count; i++)
+            {
+                int windowIdx = Math.Min(i / windowSize, totalWindows - 1);
+                float localRms = smoothedRms[windowIdx];
+
+                // Calculate dynamic gain based on local loudness
+                float dynamicGain = baseGain;
+
+                if (compressionAmount > 0.01f && localRms > 0.01f)
+                {
+                    float localLevel = localRms * baseGain;
+
+                    // Apply compression if above threshold
+                    if (localLevel > compThreshold)
+                    {
+                        float excess = localLevel - compThreshold;
+                        float compressedExcess = excess / compRatio;
+                        float targetLevel = compThreshold + compressedExcess;
+                        dynamicGain = baseGain * (targetLevel / localLevel);
+                    }
+                }
+
+                float sample = allSamples[i] * dynamicGain;
+
+                // Soft limiting using smooth curve
+                float absSample = Math.Abs(sample);
+                if (absSample > 0.8f)
+                {
+                    // Gentler soft knee limiting
+                    float x = (absSample - 0.8f) / 0.2f;
+                    float limited = 0.8f + 0.15f * x / (1f + x);
+                    if (limited > maxOutput) limited = maxOutput;
+                    sample = sample > 0 ? limited : -limited;
+                }
+
+                outputSamples[i] = sample;
+            }
+
+            // Write output
             using (var writer = new WaveFileWriter(outputPath, reader.WaveFormat))
             {
-                while ((samplesRead = reader.Read(buffer, 0, buffer.Length)) > 0)
+                // Write in chunks
+                int chunkSize = sampleRate * channels;
+                for (int i = 0; i < outputSamples.Length; i += chunkSize)
                 {
-                    for (int i = 0; i < samplesRead; i++)
-                    {
-                        buffer[i] *= normalizationFactor;
-                    }
-                    writer.WriteSamples(buffer, 0, samplesRead);
+                    int count = Math.Min(chunkSize, outputSamples.Length - i);
+                    float[] chunk = new float[count];
+                    Array.Copy(outputSamples, i, chunk, 0, count);
+                    writer.WriteSamples(chunk, 0, count);
                 }
             }
         }
