@@ -1,4 +1,4 @@
-# AnnouncerTool
+# Announcers Studio
 
 **English** | [日本語](README_ja.md)
 
