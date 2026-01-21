@@ -2,7 +2,8 @@
 
 **English** | [日本語](README_ja.md)
 
-<img width="1186" height="863" alt="スクリーンショット 2026-01-05 224526" src="https://github.com/user-attachments/assets/7d777493-86a8-4044-98e4-bb45090360bc" />
+<img width="1196" height="863" alt="スクリーンショット 2026-01-21 225507" src="https://github.com/user-attachments/assets/04ef96e0-42c8-4ebf-97f4-69ce4f7476cf" />
+
 
 This is not a Lobotomy Corporation MOD itself, but a tool to help create announcers for "L Corp's Announcers" MOD.
 It can be used regardless of language.
